@@ -11,7 +11,7 @@
 
 <meta name="author" content="Santiago Mota (santiago_mota@yahoo.es)" />
 
-<meta name="date" content="2018-03-12" />
+<meta name="date" content="2018-03-13" />
 
 <title>Análisis del crimen en L.A. con H2O</title>
 
@@ -245,7 +245,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Análisis del crimen en L.A. con H2O</h1>
 <h4 class="author"><em>Santiago Mota (<a href="mailto:santiago_mota@yahoo.es">santiago_mota@yahoo.es</a>)</em></h4>
-<h4 class="date"><em>2018-03-12</em></h4>
+<h4 class="date"><em>2018-03-13</em></h4>
 
 </div>
 
@@ -315,11 +315,9 @@ pkgs &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&q
 ##     colnames&lt;-, ifelse, %in%, is.character, is.factor, is.numeric,
 ##     log, log10, log1p, log2, round, signif, trunc</code></pre>
 <p>Obtenemos los datos de la <a href="https://data.lacity.org/A-Safe-City/Crime-Data-from-2010-to-Present/y8tr-7khq/data">web</a>: <a href="https://data.lacity.org/A-Safe-City/Crime-Data-from-2010-to-Present/y8tr-7khq/data" class="uri">https://data.lacity.org/A-Safe-City/Crime-Data-from-2010-to-Present/y8tr-7khq/data</a> en la pestaña <strong>export</strong> y en <strong>download as</strong> elegimos el formato <strong>csv</strong></p>
-<p>Cargamos los datos</p>
+<p>Cargamos los datos (acordándonos de modificar la ruta)</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Datos descargados el 15-02-2018</span>
-<span class="co"># crime_data &lt;- read.csv('./data/Crime_Data_from_2010_to_Present-15-02-2018.csv')</span>
-crime_data &lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="st">'/media/enero/Disco1/Varios/R/Archivos/clases_r/h2o/data/Crime_Data_from_2010_to_Present-15-02-2018.csv'</span>)
-<span class="co"># crime_data &lt;- read.csv('C:/Varios/R/Archivos/clases_r/h2o/data/Crime_Data_from_2010_to_Present-15-02-2018.csv')</span></code></pre></div>
+crime_data &lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="st">'/media/enero/Disco1/Varios/R/Archivos/clases_r/h2o/data/Crime_Data_from_2010_to_Present-15-02-2018.csv'</span>)</code></pre></div>
 <p>Un <strong>summary()</strong></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(crime_data)</code></pre></div>
 <pre><code>##    DR.Number            Date.Reported        Date.Occurred    
@@ -724,8 +722,8 @@ crime_data<span class="op">$</span>location &lt;-<span class="st"> </span><span 
 <span class="co"># Limpiamos y vemos la memoria </span>
 <span class="kw">gc</span>()</code></pre></div>
 <pre><code>##            used  (Mb) gc trigger  (Mb) max used  (Mb)
-## Ncells  1314515  70.3    3886542 207.6  3409185 182.1
-## Vcells 31284600 238.7   93917411 716.6 93746595 715.3</code></pre>
+## Ncells  1314514  70.3    3886542 207.6  3409184 182.1
+## Vcells 31284553 238.7   93917411 716.6 93746544 715.3</code></pre>
 <p>Creamos un contador de NAs para cada columna</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Creamos la nueva variable con un count</span>
 na_count &lt;-<span class="st"> </span><span class="kw">do.call</span>(rbind, <span class="kw">lapply</span>(<span class="kw">colnames</span>(crime_data), <span class="cf">function</span>(x) {<span class="kw">return</span>(<span class="kw">data.frame</span>(x, <span class="kw">sum</span>(<span class="kw">is.na</span>(crime_data[[x]]))))}))
@@ -1043,12 +1041,12 @@ testing    &lt;-<span class="st"> </span>crime_data[crime_data<span class="op">$
 <pre><code>##  Connection successful!
 ## 
 ## R is connected to the H2O cluster: 
-##     H2O cluster uptime:         1 hours 54 minutes 
+##     H2O cluster uptime:         45 minutes 43 seconds 
 ##     H2O cluster version:        3.16.0.2 
-##     H2O cluster version age:    3 months and 11 days !!! 
-##     H2O cluster name:           H2O_started_from_R_enero_zid493 
+##     H2O cluster version age:    3 months and 12 days !!! 
+##     H2O cluster name:           H2O_started_from_R_enero_ahz489 
 ##     H2O cluster total nodes:    1 
-##     H2O cluster total memory:   24.98 GB 
+##     H2O cluster total memory:   6.35 GB 
 ##     H2O cluster total cores:    4 
 ##     H2O cluster allowed cores:  4 
 ##     H2O cluster healthy:        TRUE 
@@ -1059,7 +1057,7 @@ testing    &lt;-<span class="st"> </span>crime_data[crime_data<span class="op">$
 ##     H2O API Extensions:         XGBoost, Algos, AutoML, Core V3, Core V4 
 ##     R Version:                  R version 3.4.3 (2017-11-30)</code></pre>
 <pre><code>## Warning in h2o.clusterInfo(): 
-## Your H2O cluster version is too old (3 months and 11 days)!
+## Your H2O cluster version is too old (3 months and 12 days)!
 ## Please download and install the latest version from http://h2o.ai/download/</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Si queremos conectar a un cluster que ya está funcionando</span>
 <span class="co"># h2o.init(ip=&quot;mycluster&quot;, port=55555) </span></code></pre></div>
@@ -1104,7 +1102,7 @@ automl_models_h2o &lt;-<span class="st"> </span><span class="kw">h2o.automl</spa
     <span class="dt">training_frame    =</span> training_h2o, 
     <span class="dt">validation_frame  =</span> validating_h2o, 
     <span class="co"># leaderboard_frame = test_h2o, </span>
-    <span class="dt">max_runtime_secs  =</span> <span class="dv">6000</span>, <span class="co"># 180</span>
+    <span class="dt">max_runtime_secs  =</span> <span class="dv">3600</span>, <span class="co"># 180</span>
     <span class="dt">stopping_metric   =</span> <span class="st">&quot;AUTO&quot;</span>)</code></pre></div>
 <pre><code>## 
   |                                                                       
@@ -1154,16 +1152,6 @@ automl_models_h2o &lt;-<span class="st"> </span><span class="kw">h2o.automl</spa
   |                                                                       
   |==============                                                   |  21%
   |                                                                       
-  |==============                                                   |  22%
-  |                                                                       
-  |===============                                                  |  22%
-  |                                                                       
-  |===============                                                  |  23%
-  |                                                                       
-  |===============                                                  |  24%
-  |                                                                       
-  |================                                                 |  24%
-  |                                                                       
   |=================================================================| 100%
 ## 
   |                                                                       
@@ -1171,7 +1159,7 @@ automl_models_h2o &lt;-<span class="st"> </span><span class="kw">h2o.automl</spa
   |                                                                       
   |=================================================================| 100%</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(<span class="kw">Sys.time</span>()<span class="op">-</span>tiempo_inicio)</code></pre></div>
-<pre><code>## Time difference of 1.782994 hours</code></pre>
+<pre><code>## Time difference of 1.099437 hours</code></pre>
 <p>Podemos ver lo que hace H2O en: <a href="http://localhost:54321/flow/index.html" class="uri">http://localhost:54321/flow/index.html</a></p>
 <p>Creamos un objeto con el mejor modelo</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">automl_leader &lt;-<span class="st"> </span>automl_models_h2o<span class="op">@</span>leader</code></pre></div>
@@ -1352,155 +1340,145 @@ pred_testing &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">str</span>(pred_testing)</code></pre></div>
 <pre><code>## 'data.frame':    21187 obs. of  3 variables:
 ##  $ predict: Factor w/ 2 levels &quot;Closed&quot;,&quot;Open&quot;: 2 2 2 2 2 2 2 2 2 2 ...
-##  $ Closed : num  0.0518 0.0562 0.1316 0.0567 0.1356 ...
-##  $ Open   : num  0.948 0.944 0.868 0.943 0.864 ...</code></pre>
+##  $ Closed : num  0.0531 0.0603 0.1482 0.0616 0.1985 ...
+##  $ Open   : num  0.947 0.94 0.852 0.938 0.801 ...</code></pre>
 <p>Un resumen de la performance en el objeto de test</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">h2o.performance</span>(automl_leader, <span class="dt">newdata =</span> testing_h2o)</code></pre></div>
 <pre><code>## H2OBinomialMetrics: stackedensemble
 ## 
-## MSE:  0.09613753
-## RMSE:  0.3100605
-## LogLoss:  0.3177846
-## Mean Per-Class Error:  0.4960892
-## AUC:  0.7922557
-## Gini:  0.5845114
+## MSE:  0.1189653
+## RMSE:  0.3449135
+## LogLoss:  0.3745473
+## Mean Per-Class Error:  0.4982028
+## AUC:  0.7885211
+## Gini:  0.5770422
 ## 
 ## Confusion Matrix (vertical: actual; across: predicted) for F1-optimal threshold:
 ##        Closed  Open    Error         Rate
-## Closed     17  2086 0.991916   =2086/2103
-## Open        5 19079 0.000262     =5/19084
-## Totals     22 21165 0.098693  =2091/21187
+## Closed      8  2095 0.996196   =2095/2103
+## Open        4 19080 0.000210     =4/19084
+## Totals     12 21175 0.099070  =2099/21187
 ## 
 ## Maximum Metrics: Maximum metrics at their respective thresholds
 ##                         metric threshold    value idx
-## 1                       max f1  0.134601 0.948048 393
-## 2                       max f2  0.130589 0.978484 394
-## 3                 max f0point5  0.544028 0.924780 254
-## 4                 max accuracy  0.134601 0.901307 393
-## 5                max precision  0.950894 1.000000   0
-## 6                   max recall  0.082898 1.000000 399
-## 7              max specificity  0.950894 1.000000   0
-## 8             max absolute_mcc  0.755418 0.302035 155
-## 9   max min_per_class_accuracy  0.815416 0.730385 121
-## 10 max mean_per_class_accuracy  0.852296 0.734661  99
+## 1                       max f1  0.089551 0.947863 397
+## 2                       max f2  0.079476 0.978436 399
+## 3                 max f0point5  0.393782 0.923999 290
+## 4                 max accuracy  0.089551 0.900930 397
+## 5                max precision  0.950663 1.000000   0
+## 6                   max recall  0.079476 1.000000 399
+## 7              max specificity  0.950663 1.000000   0
+## 8             max absolute_mcc  0.708349 0.297129 162
+## 9   max min_per_class_accuracy  0.731609 0.727532 151
+## 10 max mean_per_class_accuracy  0.758218 0.731465 137
 ## 
 ## Gains/Lift Table: Extract with `h2o.gainsLift(&lt;model&gt;, &lt;data&gt;)` or `h2o.gainsLift(&lt;model&gt;, valid=&lt;T/F&gt;, xval=&lt;T/F&gt;)`</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">as.data.frame</span>(automl_models_h2o<span class="op">@</span>leaderboard)</code></pre></div>
-<pre><code>##                                                 model_id auc logloss
-## 1     StackedEnsemble_AllModels_0_AutoML_20180312_120601  NA      NA
-## 2     StackedEnsemble_AllModels_0_AutoML_20180312_101114  NA      NA
-## 3  StackedEnsemble_BestOfFamily_0_AutoML_20180312_101114  NA      NA
-## 4              GBM_grid_0_AutoML_20180312_120601_model_2  NA      NA
-## 5                           DRF_0_AutoML_20180312_120601  NA      NA
-## 6              GBM_grid_0_AutoML_20180312_101114_model_2  NA      NA
-## 7                           DRF_0_AutoML_20180312_101114  NA      NA
-## 8              GBM_grid_0_AutoML_20180312_120601_model_1  NA      NA
-## 9              GBM_grid_0_AutoML_20180312_101114_model_1  NA      NA
-## 10                          XRT_0_AutoML_20180312_120601  NA      NA
-## 11                          XRT_0_AutoML_20180312_101114  NA      NA
-## 12             GBM_grid_0_AutoML_20180312_120601_model_0  NA      NA
-## 13             GBM_grid_0_AutoML_20180312_101114_model_0  NA      NA
-## 14             GBM_grid_0_AutoML_20180312_101114_model_3  NA      NA
-## 15             GBM_grid_0_AutoML_20180312_120601_model_3  NA      NA</code></pre>
+<pre><code>##                                                model_id auc logloss
+## 1    StackedEnsemble_AllModels_0_AutoML_20180313_122540  NA      NA
+## 2 StackedEnsemble_BestOfFamily_0_AutoML_20180313_122540  NA      NA
+## 3                          DRF_0_AutoML_20180313_122540  NA      NA
+## 4                          XRT_0_AutoML_20180313_122540  NA      NA
+## 5             GBM_grid_0_AutoML_20180313_122540_model_0  NA      NA</code></pre>
 <p>Y vemos el modelo</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">automl_leader</code></pre></div>
 <pre><code>## Model Details:
 ## ==============
 ## 
 ## H2OBinomialModel: stackedensemble
-## Model ID:  StackedEnsemble_AllModels_0_AutoML_20180312_120601 
+## Model ID:  StackedEnsemble_AllModels_0_AutoML_20180313_122540 
 ## NULL
 ## 
 ## 
 ## H2OBinomialMetrics: stackedensemble
 ## ** Reported on training data. **
 ## 
-## MSE:  0.08551446
-## RMSE:  0.2924286
-## LogLoss:  0.2922234
-## Mean Per-Class Error:  0.186673
-## AUC:  0.9272769
-## Gini:  0.8545539
+## MSE:  0.07489115
+## RMSE:  0.2736625
+## LogLoss:  0.2651635
+## Mean Per-Class Error:  0.1527908
+## AUC:  0.9428592
+## Gini:  0.8857184
 ## 
 ## Confusion Matrix (vertical: actual; across: predicted) for F1-optimal threshold:
 ##        Closed    Open    Error             Rate
-## Closed 224385  107136 0.323165   =107136/331521
-## Open    55333 1047337 0.050181   =55333/1102670
-## Totals 279718 1154473 0.113283  =162469/1434191
+## Closed 245185   86336 0.260424    =86336/331521
+## Open    49794 1052876 0.045158   =49794/1102670
+## Totals 294979 1139212 0.094918  =136130/1434191
 ## 
 ## Maximum Metrics: Maximum metrics at their respective thresholds
 ##                         metric threshold    value idx
-## 1                       max f1  0.536387 0.928020 217
-## 2                       max f2  0.244809 0.956781 321
-## 3                 max f0point5  0.764393 0.929038 130
-## 4                 max accuracy  0.578958 0.887166 202
-## 5                max precision  0.950937 1.000000   0
-## 6                   max recall  0.066935 1.000000 396
-## 7              max specificity  0.950937 1.000000   0
-## 8             max absolute_mcc  0.641548 0.676178 180
-## 9   max min_per_class_accuracy  0.810180 0.849162 110
-## 10 max mean_per_class_accuracy  0.782521 0.850677 122
+## 1                       max f1  0.556156 0.939279 210
+## 2                       max f2  0.301893 0.962042 296
+## 3                 max f0point5  0.756018 0.939519 137
+## 4                 max accuracy  0.583495 0.905195 201
+## 5                max precision  0.952286 1.000000   0
+## 6                   max recall  0.065308 1.000000 394
+## 7              max specificity  0.952286 1.000000   0
+## 8             max absolute_mcc  0.626318 0.727934 188
+## 9   max min_per_class_accuracy  0.805609 0.869694 115
+## 10 max mean_per_class_accuracy  0.766066 0.871189 133
 ## 
 ## Gains/Lift Table: Extract with `h2o.gainsLift(&lt;model&gt;, &lt;data&gt;)` or `h2o.gainsLift(&lt;model&gt;, valid=&lt;T/F&gt;, xval=&lt;T/F&gt;)`
 ## H2OBinomialMetrics: stackedensemble
 ## ** Reported on validation data. **
 ## 
-## MSE:  0.1149842
-## RMSE:  0.3390932
-## LogLoss:  0.3698121
-## Mean Per-Class Error:  0.3273718
-## AUC:  0.8512825
-## Gini:  0.7025651
+## MSE:  0.1183872
+## RMSE:  0.3440744
+## LogLoss:  0.3783586
+## Mean Per-Class Error:  0.3445659
+## AUC:  0.8457715
+## Gini:  0.691543
 ## 
 ## Confusion Matrix (vertical: actual; across: predicted) for F1-optimal threshold:
 ##        Closed   Open    Error           Rate
-## Closed  18285  28801 0.611668   =28801/47086
-## Open     7790 173055 0.043076   =7790/180845
-## Totals  26075 201856 0.160535  =36591/227931
+## Closed  16495  30591 0.649684   =30591/47086
+## Open     7134 173711 0.039448   =7134/180845
+## Totals  23629 204302 0.165511  =37725/227931
 ## 
 ## Maximum Metrics: Maximum metrics at their respective thresholds
 ##                         metric threshold    value idx
-## 1                       max f1  0.392776 0.904387 283
-## 2                       max f2  0.176055 0.951674 363
-## 3                 max f0point5  0.751813 0.896806 142
-## 4                 max accuracy  0.462102 0.839908 258
-## 5                max precision  0.950073 0.995944   0
-## 6                   max recall  0.060235 1.000000 399
-## 7              max specificity  0.950073 0.999851   0
-## 8             max absolute_mcc  0.696942 0.483410 165
-## 9   max min_per_class_accuracy  0.812491 0.772395 112
-## 10 max mean_per_class_accuracy  0.808046 0.773112 114
+## 1                       max f1  0.331162 0.902050 304
+## 2                       max f2  0.129093 0.951283 377
+## 3                 max f0point5  0.703089 0.894299 160
+## 4                 max accuracy  0.391017 0.835933 282
+## 5                max precision  0.950596 0.998028   0
+## 6                   max recall  0.063875 1.000000 399
+## 7              max specificity  0.950596 0.999958   0
+## 8             max absolute_mcc  0.627734 0.473369 192
+## 9   max min_per_class_accuracy  0.781789 0.767426 123
+## 10 max mean_per_class_accuracy  0.802383 0.768738 113
 ## 
 ## Gains/Lift Table: Extract with `h2o.gainsLift(&lt;model&gt;, &lt;data&gt;)` or `h2o.gainsLift(&lt;model&gt;, valid=&lt;T/F&gt;, xval=&lt;T/F&gt;)`
 ## H2OBinomialMetrics: stackedensemble
 ## ** Reported on cross-validation data. **
 ## ** 5-fold cross-validation on training data (Metrics computed for combined holdout predictions) **
 ## 
-## MSE:  0.1148181
-## RMSE:  0.3388482
-## LogLoss:  0.369502
-## Mean Per-Class Error:  0.2793064
-## AUC:  0.8712348
-## Gini:  0.7424697
+## MSE:  0.1158442
+## RMSE:  0.340359
+## LogLoss:  0.3723338
+## Mean Per-Class Error:  0.2803854
+## AUC:  0.868436
+## Gini:  0.7368721
 ## 
 ## Confusion Matrix (vertical: actual; across: predicted) for F1-optimal threshold:
 ##        Closed    Open    Error             Rate
-## Closed 165711  165810 0.500149   =165810/331521
-## Open    64466 1038204 0.058464   =64466/1102670
-## Totals 230177 1204014 0.160562  =230276/1434191
+## Closed 165562  165959 0.500599   =165959/331521
+## Open    66350 1036320 0.060172   =66350/1102670
+## Totals 231912 1202279 0.161979  =232309/1434191
 ## 
 ## Maximum Metrics: Maximum metrics at their respective thresholds
 ##                         metric threshold    value idx
-## 1                       max f1  0.454094 0.900170 250
-## 2                       max f2  0.143510 0.945566 368
-## 3                 max f0point5  0.780604 0.898850 124
-## 4                 max accuracy  0.523951 0.840732 226
-## 5                max precision  0.951122 0.997629   0
-## 6                   max recall  0.057485 1.000000 399
-## 7              max specificity  0.951122 0.999967   0
-## 8             max absolute_mcc  0.688417 0.540938 165
-## 9   max min_per_class_accuracy  0.826617 0.793220 101
-## 10 max mean_per_class_accuracy  0.830376 0.794103  99
+## 1                       max f1  0.462545 0.899213 248
+## 2                       max f2  0.141606 0.945331 367
+## 3                 max f0point5  0.770436 0.897762 130
+## 4                 max accuracy  0.525549 0.839002 226
+## 5                max precision  0.951479 0.995525   0
+## 6                   max recall  0.053853 1.000000 399
+## 7              max specificity  0.951479 0.999937   0
+## 8             max absolute_mcc  0.710315 0.536213 155
+## 9   max min_per_class_accuracy  0.825580 0.791672 102
+## 10 max mean_per_class_accuracy  0.830853 0.791855  99
 ## 
 ## Gains/Lift Table: Extract with `h2o.gainsLift(&lt;model&gt;, &lt;data&gt;)` or `h2o.gainsLift(&lt;model&gt;, valid=&lt;T/F&gt;, xval=&lt;T/F&gt;)`</code></pre>
 <p>Matriz de confusión sobre datos de testing con el paquete <strong>caret</strong></p>
@@ -1510,27 +1488,27 @@ confusion_matrix</code></pre></div>
 ## 
 ##           Reference
 ## Prediction Closed  Open
-##     Closed    431   822
-##     Open     1672 18262
-##                                           
-##                Accuracy : 0.8823          
-##                  95% CI : (0.8779, 0.8866)
-##     No Information Rate : 0.9007          
-##     P-Value [Acc &gt; NIR] : 1               
-##                                           
-##                   Kappa : 0.1974          
-##  Mcnemar's Test P-Value : &lt;2e-16          
-##                                           
-##             Sensitivity : 0.20495         
-##             Specificity : 0.95693         
-##          Pos Pred Value : 0.34397         
-##          Neg Pred Value : 0.91612         
-##              Prevalence : 0.09926         
-##          Detection Rate : 0.02034         
-##    Detection Prevalence : 0.05914         
-##       Balanced Accuracy : 0.58094         
-##                                           
-##        'Positive' Class : Closed          
+##     Closed    592  1356
+##     Open     1511 17728
+##                                         
+##                Accuracy : 0.8647        
+##                  95% CI : (0.86, 0.8693)
+##     No Information Rate : 0.9007        
+##     P-Value [Acc &gt; NIR] : 1.000000      
+##                                         
+##                   Kappa : 0.2176        
+##  Mcnemar's Test P-Value : 0.004026      
+##                                         
+##             Sensitivity : 0.28150       
+##             Specificity : 0.92895       
+##          Pos Pred Value : 0.30390       
+##          Neg Pred Value : 0.92146       
+##              Prevalence : 0.09926       
+##          Detection Rate : 0.02794       
+##    Detection Prevalence : 0.09194       
+##       Balanced Accuracy : 0.60522       
+##                                         
+##        'Positive' Class : Closed        
 ## </code></pre>
 <p>Y por último, la información de la sesión</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">sessionInfo</span>()</code></pre></div>
@@ -1576,7 +1554,7 @@ confusion_matrix</code></pre></div>
 ## [46] withr_2.1.1.9000   MASS_7.3-49        bitops_1.0-6      
 ## [49] recipes_0.1.2      ModelMetrics_1.1.0 grid_3.4.3        
 ## [52] nlme_3.1-131       jsonlite_1.5       gtable_0.2.0      
-## [55] magrittr_1.5       scales_0.5.0.9000  stringi_1.1.6     
+## [55] magrittr_1.5       scales_0.5.0.9000  stringi_1.1.7     
 ## [58] reshape2_1.4.3     bindrcpp_0.2       timeDate_3043.102 
 ## [61] robustbase_0.92-8  lava_1.6           iterators_1.0.9   
 ## [64] tools_3.4.3        glue_1.2.0         DEoptimR_1.0-8    
@@ -1590,7 +1568,7 @@ confusion_matrix</code></pre></div>
 <li><a href="https://dzone.com/articles/crime-analysis-using-h2o-autoencoders-part-1">Crime Analysis Using H2O Autoencoders (Part 1)</a></li>
 <li><a href="https://dzone.com/articles/crime-analysis-using-h2o-autoencoders-part-2">Crime Analysis Using H2O Autoencoders (Part 2)</a></li>
 <li><a href="https://data.lacity.org/A-Safe-City/Crime-Data-from-2010-to-Present/y8tr-7khq">Crime Data from 2010 to Present</a></li>
-<li>H2O: [Web]](<a href="https://www.h2o.ai/" class="uri">https://www.h2o.ai/</a>), <a href="https://blog.h2o.ai/">Blog</a>, <a href="http://docs.h2o.ai/h2o/latest-stable/index.html">Documentación</a>, <a href="http://docs.h2o.ai/h2o/latest-stable/index.html#tutorials">Tutoriales</a>, <a href="https://github.com/h2oai/h2o-3/tree/master/h2o-r/demos">Demos en R</a>y <a href="https://www.youtube.com/channel/UCk6ONJlPzjw3DohAeMSgsng">Canal de Youtube</a></li>
+<li>H2O: [Web]](<a href="https://www.h2o.ai/" class="uri">https://www.h2o.ai/</a>), <a href="https://blog.h2o.ai/">Blog</a>, <a href="http://docs.h2o.ai/h2o/latest-stable/index.html">Documentación</a>, <a href="http://docs.h2o.ai/h2o/latest-stable/index.html#tutorials">Tutoriales</a>, <a href="https://github.com/h2oai/h2o-3/tree/master/h2o-r/demos">Demos en R</a> y <a href="https://www.youtube.com/channel/UCk6ONJlPzjw3DohAeMSgsng">Canal de Youtube</a></li>
 </ul>
 </div>
 
