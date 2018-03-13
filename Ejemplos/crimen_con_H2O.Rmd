@@ -1,0 +1,687 @@
+---
+title:  "Análisis del crimen en L.A. con H2O"
+author: "Santiago Mota (santiago_mota@yahoo.es)"
+date:   "`r Sys.Date()`"
+output:
+  html_document: 
+    theme:       cosmo  # "default", "cerulean", "journal", "flatly", "readable", "spacelab", "united", "cosmo", "lumen", "paper", "sandstone", "simplex", "yeti"
+    highlight:   tango  # "default", "tango", "pygments", "kate", "monochrome", "espresso", "zenburn", "haddock", "textmate"
+    toc:         true
+    toc_float:   true
+  pdf_document:  default
+  word_document: default
+license:  by-nc-sa
+urlcolor: blue
+---
+
+
+## Análisis del crimen en L.A. con H2O
+
+Primero, las librerías
+
+```{r, message=FALSE}
+# Para cada librería preguntamos primero si está instalada
+if(!is.element("dplyr", installed.packages()[, 1]))
+      install.packages("dplyr", repos = 'http://cran.us.r-project.org')
+library(dplyr)
+if(!is.element("ggplot2", installed.packages()[, 1]))
+      install.packages("ggplot2", repos = 'http://cran.us.r-project.org')
+library(ggplot2)
+if(!is.element("lubridate", installed.packages()[, 1]))
+      install.packages("lubridate", repos = 'http://cran.us.r-project.org')
+library(lubridate)
+if(!is.element("chron", installed.packages()[, 1]))
+      install.packages("chron", repos = 'http://cran.us.r-project.org')
+library(chron)
+if(!is.element("pROC", installed.packages()[, 1]))
+      install.packages("pROC", repos = 'http://cran.us.r-project.org')
+library(pROC)
+```
+
+La de H2O la tratamos aparte. Si hay que instalarla o actualizarla, es mejor descargarla desde su cuenta de AWS
+
+```{r, eval=FALSE}
+# http://h2o-release.s3.amazonaws.com/h2o/rel-wolpert/2/index.html
+# The following two commands remove any previously installed H2O packages for R.
+if ("package:h2o" %in% search()) { detach("package:h2o", unload=TRUE) }
+if ("h2o" %in% rownames(installed.packages())) { remove.packages("h2o") }
+
+# Next, we download packages that H2O depends on.
+pkgs <- c("RCurl","jsonlite")
+for (pkg in pkgs) {
+if (! (pkg %in% rownames(installed.packages()))) { install.packages(pkg) }
+}
+
+# Now we download, install and initialize the H2O package for R.
+install.packages("h2o", type="source", repos="http://h2o-release.s3.amazonaws.com/h2o/rel-wolpert/2/R")
+```
+
+Ahora ya podemos cargar el paquete
+
+```{r}
+library(h2o)
+```
+
+
+Obtenemos los datos de la [web](https://data.lacity.org/A-Safe-City/Crime-Data-from-2010-to-Present/y8tr-7khq/data): https://data.lacity.org/A-Safe-City/Crime-Data-from-2010-to-Present/y8tr-7khq/data en la pestaña **export** y en **download as** elegimos el formato **csv**
+
+Cargamos los datos (acordándonos de modificar la ruta)
+
+```{r}
+# Datos descargados el 15-02-2018
+crime_data <- read.csv('/media/enero/Disco1/Varios/R/Archivos/clases_r/h2o/data/Crime_Data_from_2010_to_Present-15-02-2018.csv')
+```
+
+Un **summary()**
+
+```{r}
+summary(crime_data)
+```
+
+Y un **str()**
+
+```{r}
+str(crime_data)
+```
+
+Es un dataset grande, de mas de 1,5 millones de observaciones
+
+
+## Cambio de nombre de las variables
+
+Vemos los nombres
+
+```{r}
+names(crime_data)
+```
+
+Vamos a cambiarlas
+
+```{r}
+# Minusculas
+names(crime_data) <- tolower(names(crime_data))
+
+# cambiar . por _
+names(crime_data) <- gsub('.', '_', names(crime_data), fixed = TRUE)
+
+# Las vemos
+names(crime_data)
+```
+
+
+## Análisis de NAs
+
+Algunos cambios en valores para pasarlos a NA
+
+
+### Mo Codes
+
+```{r}
+# Los pasamos a caracter
+crime_data$mo_codes <- as.character(crime_data$mo_codes)
+
+# Cambiamos los valores en blanco por NA
+crime_data$mo_codes[crime_data$mo_codes==''] <- NA
+
+# table(crime_data$mo_code, useNA = 'ifany') # Ocupa mucho
+```
+
+Creamos un objeto con los valores únicos
+
+```{r}
+# Los valores únicos de crime_data$mo_codes
+mo_codes <- unique(as.character(crime_data$mo_codes))
+
+# Quitamos los NAs
+mo_codes <- mo_codes[!is.na(mo_codes)]
+```
+
+```{r}
+# Sacamos los valores únicos
+mo_codes_unique <- unique(paste(mo_codes, collapse = ' '))
+
+# Separamos los valores con ' '
+mo_codes <- unique(strsplit(mo_codes_unique, ' '))
+
+# Pasamos a character
+mo_codes <- unlist(mo_codes)
+
+# Nos quedamos con los valores únicos
+mo_codes <- unique(mo_codes)
+
+# Los ordenamos
+mo_codes <- mo_codes[order(mo_codes)]
+
+# Cuantos hay
+length(mo_codes)
+```
+
+Aquí podríamos obtener un one-hot-encoding de los mo_codes. No lo hacemos porque estamos evaluando la eficacia de autoML, pero es uno de los temas a tratar para mejorar el modelado 
+
+
+### Status codes
+
+```{r}
+# Los pasamos a caracter
+crime_data$status_code <- as.character(crime_data$status_code)
+
+# Cambiamos los valores en blanco por NA
+crime_data$status_code[crime_data$status_code==''] <- NA
+
+# Volvemos a pasar a factor
+crime_data$status_code <- as.factor(crime_data$status_code)
+
+# Sacamos una tabla
+table(crime_data$status_code, useNA = 'ifany')
+```
+
+
+### Cross Street
+
+```{r}
+# Pasamos a caracter
+crime_data$cross_street <- as.character(crime_data$cross_street)
+
+# Cambiamos los valores en blanco por NA
+crime_data$cross_street[crime_data$cross_street %in% c('')] <- NA
+
+# table(crime_data$cross_street, useNA = 'ifany')  # Muy largo
+
+# Volvemos a pasar a factor
+crime_data$cross_street <- as.factor(crime_data$cross_street)
+```
+
+
+### Weapon description
+
+```{r}
+# Pasamos a caracter
+crime_data$weapon_description <- as.character(crime_data$weapon_description)
+
+# Cambiamos los valores en blanco por NA
+crime_data$weapon_description[crime_data$weapon_description %in% c('')] <- NA
+
+# table(crime_data$weapon_description, useNA = 'ifany')  # Muy largo
+
+# Volvemos a pasar a factor
+crime_data$weapon_description <- as.factor(crime_data$weapon_description)
+```
+
+
+### Crime code description
+
+```{r}
+
+crime_data$crime_code_description <- as.character(crime_data$crime_code_description)
+
+
+crime_data$crime_code_description[crime_data$crime_code_description %in% c('')] <- NA
+
+# table(crime_data$crime_code_description, useNA = 'ifany')
+
+# Volvemos a pasar a factor
+crime_data$crime_code_description <- as.factor(crime_data$cross_street)
+```
+
+
+### Premise description
+
+```{r}
+# Pasamos a caracter
+crime_data$premise_description <- as.character(crime_data$premise_description)
+
+# Cambiamos los valores en blanco por NA
+crime_data$premise_description[crime_data$premise_description %in% c('')] <- NA
+
+# table(crime_data$premise_description, useNA = 'ifany')
+
+# Volvemos a pasar a factor
+crime_data$premise_description <- as.factor(crime_data$premise_description)
+```
+
+
+### Address
+
+```{r}
+# Pasamos a caracter
+crime_data$address <- as.character(crime_data$address)
+
+# Cambiamos los valores '00' por NA
+crime_data$address[crime_data$address=='00'] <- NA
+
+# table(crime_data$address, useNA = 'ifany')
+
+# Pasamos a factor
+crime_data$address <- as.factor(crime_data$address)
+```
+
+
+### Sex
+
+```{r}
+# Pasamos a caracter
+crime_data$victim_sex <- as.character(crime_data$victim_sex)
+
+# Cambiamos los valores en blanco y los '-' por NA
+crime_data$victim_sex[crime_data$victim_sex %in% c('', '-')] <- NA
+
+# Una tabla
+table(crime_data$victim_sex, useNA = 'ifany')
+
+# Volvemos a pasar a factor
+crime_data$victim_sex <- as.factor(crime_data$victim_sex)
+```
+
+
+### Descent Code
+
+A - Other Asian 
+B - Black 
+C - Chinese 
+D - Cambodian 
+F - Filipino 
+G - Guamanian 
+H - Hispanic/Latin/Mexican 
+I - American Indian/Alaskan Native 
+J - Japanese 
+K - Korean 
+L - Laotian 
+O - Other 
+P - Pacific Islander 
+S - Samoan 
+U - Hawaiian 
+V - Vietnamese 
+W - White 
+X - Unknown 
+Z - Asian Indian
+
+```{r}
+# Renombramos los niveles
+levels(crime_data$victim_descent) <- c("", "-", " Other_Asian", "Black", 
+                                       "Chinese", "Cambodian", "Filipino",
+                                       "Guamanian", "Hispanic-Latin-Mexican", 
+                                       "American_Indian-Alaskan_Native", 
+                                       "Japanese", "Korean", "Laotian", "Other",
+                                       "Pacific_Islander", "Samoan", 
+                                       "Hawaiian", "Vietnamese", "White", 
+                                       "Unknown", "Asian_Indian")
+# Pasamos a caracter
+crime_data$victim_descent <- as.character(crime_data$victim_descent)
+
+# Cambiamos los valores en blanco y los '-' por 'Unknown'
+crime_data$victim_descent[crime_data$victim_descent %in% c('', '-')] <- 'Unknown'
+
+# Una tabla
+table(crime_data$victim_descent, useNA = 'ifany')
+
+# Y volvemos a factor
+crime_data$victim_descent <- as.factor(crime_data$victim_descent)
+```
+
+
+### Location
+
+```{r}
+# pasamos a caracter
+crime_data$location <- as.character(crime_data$location)
+
+# Los que tienen location '' los pasamos a '(0, 0)'
+crime_data$location[crime_data$location==""] <- "(0, 0)"
+
+# table(crime_data$location, useNA = 'ifany')
+```
+
+Creamos un objeto (crime_data_location) y limpiamos crime_data_location, quitando ' ', '(' y ')'
+
+```{r}
+# Copiamos de crime_data$location
+crime_data_location <- crime_data$location
+
+# Quitamos los '('
+crime_data_location <- gsub('(', '', crime_data_location, fixed = TRUE)
+
+# Quitamos los ')'
+crime_data_location <- gsub(')', '', crime_data_location, fixed = TRUE)
+
+# Quitamos los ' '
+crime_data_location <- gsub(' ', '', crime_data_location, fixed = TRUE)
+```
+
+```{r, eval=FALSE}
+temp2 <- strsplit(crime_data_location, ',')
+# temp3 <- as.data.frame(temp2)
+temp4 <- unlist(temp2)
+temp5 <- stringr::str_split(crime_data_location, ',')
+# temp6 <- as.data.frame(temp5, optional = TRUE)
+
+# https://stackoverflow.com/questions/4227223/r-list-to-data-frame
+temp7 <- do.call(rbind.data.frame, temp2)
+# temp8 <- do.call(rbind, lapply(temp2, data.frame, stringsAsFactors=FALSE))
+# temp9 <- do.call(rbind, lapply(temp2, matrix, stringsAsFactors=FALSE))
+temp10 <- data.frame(matrix(unlist(temp2), nrow=1674208, byrow=T),
+                     stringsAsFactors=FALSE)
+```
+
+Vamos a incluir en **crime_data** las variables location_x y location_y
+
+```{r}
+# https://stackoverflow.com/questions/4227223/r-list-to-data-frame
+crime_data_location_df <- data.frame(matrix(unlist(strsplit(crime_data_location, ',')), 
+                                            nrow=length(crime_data_location), 
+                                            byrow=T), stringsAsFactors=FALSE)
+
+# Cambiamos los nombres
+names(crime_data_location_df) <- c('location_x', 'location_y')
+
+# Pasamos a numérico
+crime_data$location_x <- as.numeric(crime_data_location_df$location_x)
+crime_data$location_y <- as.numeric(crime_data_location_df$location_y)
+
+# Cambiamos los 0 por NAs
+crime_data$location_x[crime_data$location_x==0] <- NA
+crime_data$location_y[crime_data$location_y==0] <- NA
+
+# Cambiamos también los (0, 0) por NAs
+crime_data$location[crime_data$location=="(0, 0)"] <- NA
+
+# Y pasamos location a factor (ya tenemos un location_x y location_y numericos)
+crime_data$location <- as.factor(crime_data$location)
+```
+
+Limpiamos el entorno
+
+```{r}
+# Borramos dos datasets
+rm(crime_data_location_df, crime_data_location)
+
+# Limpiamos y vemos la memoria 
+gc()
+```
+
+Creamos un contador de NAs para cada columna
+
+```{r}
+# Creamos la nueva variable con un count
+na_count <- do.call(rbind, lapply(colnames(crime_data), function(x) {return(data.frame(x, sum(is.na(crime_data[[x]]))))}))
+
+# Cambiamos el nombre de las variables en el dataset
+colnames(na_count) <- c('attribute_name', 'na_count')
+# na_count$attribute_name <- as.character(na_count$attribute_name)
+
+# Nos quedamos con los distintos de cero
+na_count <- na_count[na_count$na_count != 0,]
+
+# Lo vemos en gráfico
+plot(na_count)
+```
+
+
+## Nuevas variables
+
+```{r}
+# Creamos una variable con el mes del crimen
+crime_data$crime_month <- as.factor(substr(as.character(crime_data$date_occurred), 1, 2))
+
+# Vemos en tabla
+table(crime_data$crime_month, useNA = 'ifany')
+```
+
+Cambiamos los valores tipo fecha a formato as.Date
+
+```{r}
+crime_data$date_reported <- as.Date(as.character(crime_data$date_reported), '%m/%d/%Y')
+crime_data$date_occurred <- as.Date(as.character(crime_data$date_occurred), '%m/%d/%Y')
+```
+
+Ordenamos por fecha
+
+```{r}
+crime_data <- crime_data[order(crime_data$date_occurred), ]
+```
+
+Generamos algunas columnas
+
+Año
+
+```{r}
+# Con lubridate
+# crime_data$crime_year  <- year(crime_data$date_occurred)
+crime_data$crime_year  <- as.factor(substr(as.character(crime_data$date_occurred), 1, 4))
+table(crime_data$crime_year, useNA = 'ifany')
+```
+
+Mes
+
+```{r}
+# Mes
+# Con lubridate
+# crime_data$crime_month <- month(crime_data$date_occurred, label = TRUE)
+crime_data$crime_month <- as.factor(substr(as.character(crime_data$date_occurred), 6, 7))
+table(crime_data$crime_month, useNA = 'ifany')
+```
+
+Semana
+
+```{r, eval=FALSE}
+crime_data$crime_week  <- week(crime_data$date_occurred)
+table(crime_data$crime_week, useNA = 'ifany')
+```
+
+Convertimos el tiempo con el paquete **chron**
+
+```{r}
+crime_data$crime_time  <- times(substr(as.POSIXct(sprintf("%04.0f", crime_data$time_occurred), origin = '1970-01-01', "Asia/Calcutta", format='%H%M'), 12, 19))
+```
+
+Creamos una variable minuto
+
+```{r}
+crime_data$crime_minute  <- (crime_data$time_occurred %/% 100)*60 + (crime_data$time_occurred %% 100)*100
+table(crime_data$crime_minute, useNA = 'ifany')
+```
+
+Establecemos algunas franjas horarias
+
+```{r}
+crime_data$crime_time_interval  <- cut(crime_data$crime_time, breaks = times(c('00:00:00', '05:00:00', '09:00:00', '13:00:00', '17:00:00', '21:00:00', '23:59:00')), labels = c('Late_night', 'Early_morning', 'Late_morning', 'Early_afternoon', 'Late_afternoon', 'Evening'), include.lowest = TRUE)
+table(crime_data$crime_time_interval, useNA = 'ifany')
+```
+
+Eliminamos la variable crime_time, ya que es equivalente a crime_minute
+
+```{r}
+# crime_data$crime_time <- as.factor(crime_data$crime_time)
+crime_data$crime_time <- NULL
+```
+
+Día de la semana
+
+```{r}
+crime_data$occurred_week_day <- factor(weekdays(crime_data$date_occurred), 
+                                       levels = c("lunes", "martes",  
+                                                  "miércoles", "jueves", 
+                                                  "viernes", "sábado", 
+                                                  "domingo"))
+table(crime_data$occurred_week_day, useNA = 'ifany')
+```
+
+Tiempo de retraso a la hora de denunciar
+
+```{r}
+crime_data$delay_reported <- crime_data$date_reported - crime_data$date_occurred
+crime_data$delay_reported <- as.numeric(crime_data$delay_reported)
+```
+
+```{r, eval=FALSE}
+# En esta parte se crean nuevas variables a partir de la suma y de la media
+# No se ejecuta al tener eval=FALSE
+week_day_occurred_sum   <- aggregate(date_occurred ~ occurred_week_day, 
+                                     data = crime_data, "sum")
+week_day_occurred_mean  <- aggregate(date_occurred ~ occured_week_day, 
+                                     data = crime_data, "mean")
+
+all_sum   <- aggregate(target ~ date_occurred + occurred_week_day, 
+                       data = train, "sum")
+all_mean  <- aggregate(target ~ date_occurred + occured_week_day, 
+                       data = train, "mean")
+
+plot(all_mean$date_occurred, all_mean$target)
+```
+
+Otro **summary()**
+
+```{r}
+summary(crime_data)
+```
+
+
+## Modelado
+
+Estado del informe del crimen. Vemos una tabla con las opciones
+
+```{r}
+table(crime_data$status_description, useNA = 'ifany')
+```
+
+Creamos una variable para predecir, **target**
+
+```{r}
+# Empezamos con todos los valores como 'Closed'
+crime_data$target <- 'Closed'
+
+# Y ahora los que crime_data$status_description=='Invest Cont' pasan a 'Open'
+crime_data$target[crime_data$status_description=='Invest Cont'] <- 'Open'
+
+# Una tabla
+table(crime_data$target, useNA = 'ifany')
+
+# Y pasamos a factor
+crime_data$target <- as.factor(crime_data$target)
+```
+
+
+## Crear training y validating
+
+```{r}
+# training hasta el año 2016
+training   <- crime_data[crime_data$date_occurred<as.Date('2017-01-01'), ]
+
+# Validating el año 2017
+validating <- crime_data[(crime_data$date_occurred>as.Date('2016-12-31') & crime_data$date_occurred<as.Date('2018-01-01')), ]
+
+# testing el año 2018
+testing    <- crime_data[crime_data$date_occurred>as.Date('2017-12-31'), ]
+```
+
+
+## Iniciar H2O en local
+
+```{r}
+# Iniciamos con todos los cores posibles y la memoria de 32G (si hay menos se
+# autoregula)
+h2o.init(nthreads=-1, max_mem_size="32G")
+
+# Si queremos conectar a un cluster que ya está funcionando
+# h2o.init(ip="mycluster", port=55555) 
+```
+
+Pasamos los objetos a H2O y les damos nombre para poder identificarlos
+
+```{r}
+training_h2o   <- as.h2o(training, 
+                         destination_frame = "training")
+validating_h2o <- as.h2o(validating, 
+                         destination_frame = "validating")
+testing_h2o    <- as.h2o(testing, 
+                         destination_frame = "testing")
+```
+
+
+### AutoML
+
+Tras estos pasos en los que someramente hemos hecho ETL, tratamiento de NAs y algunas variables nuevas, pasamos a la parte de autoML
+
+```{r}
+# La columna target
+y <- "target"
+
+# Las otras variables a usar, primero todas menos el target
+x <- setdiff(names(training), y)
+
+# Ahora quitamos también: 'dr_number', 'status_code', 'status_description'
+x <- x[!(x %in% c('dr_number', 'status_code', 'status_description'))]
+```
+
+Llamamos a automl. Solo le decimos los datos, la columna target, que hay un dataset de train y uno de validación y cuantos minutos de ejecución
+
+```{r}
+tiempo_inicio <- Sys.time()
+automl_models_h2o <- h2o.automl(
+    x                 = x, 
+    y                 = y, 
+    training_frame    = training_h2o, 
+    validation_frame  = validating_h2o, 
+    # leaderboard_frame = test_h2o, 
+    max_runtime_secs  = 3600, # 180
+    stopping_metric   = "AUTO")
+print(Sys.time()-tiempo_inicio)
+```
+
+Podemos ver lo que hace H2O en: http://localhost:54321/flow/index.html
+
+Creamos un objeto con el mejor modelo
+
+```{r}
+automl_leader <- automl_models_h2o@leader
+```
+
+
+## Predicción
+
+```{r}
+# Pasamos el modelo y los datos nuevos
+pred_testing <- as.data.frame(h2o.predict(automl_leader, newdata = testing_h2o))
+```
+
+Vemos el objeto de la predicción
+
+```{r}
+str(pred_testing)
+```
+
+Un resumen de la performance en el objeto de test
+
+```{r}
+h2o.performance(automl_leader, newdata = testing_h2o)
+```
+
+```{r}
+as.data.frame(automl_models_h2o@leaderboard)
+```
+
+Y vemos el modelo
+
+```{r}
+automl_leader
+```
+
+Matriz de confusión sobre datos de testing con el paquete **caret**
+
+```{r}
+confusion_matrix <- caret::confusionMatrix(pred_testing$predict, testing$target)
+confusion_matrix
+```
+
+Y por último, la información de la sesión
+
+```{r}
+sessionInfo()
+```
+
+
+## Links
+
+* [Crime Analysis Using H2O Autoencoders (Part 1)](https://dzone.com/articles/crime-analysis-using-h2o-autoencoders-part-1)
+* [Crime Analysis Using H2O Autoencoders (Part 2)](https://dzone.com/articles/crime-analysis-using-h2o-autoencoders-part-2)
+* [Crime Data from 2010 to Present](https://data.lacity.org/A-Safe-City/Crime-Data-from-2010-to-Present/y8tr-7khq)
+* H2O: [Web]](https://www.h2o.ai/), [Blog](https://blog.h2o.ai/), [Documentación](http://docs.h2o.ai/h2o/latest-stable/index.html), [Tutoriales](http://docs.h2o.ai/h2o/latest-stable/index.html#tutorials), [Demos en R](https://github.com/h2oai/h2o-3/tree/master/h2o-r/demos) y [Canal de Youtube](https://www.youtube.com/channel/UCk6ONJlPzjw3DohAeMSgsng)
