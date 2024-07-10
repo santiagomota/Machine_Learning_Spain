@@ -9,3 +9,5 @@ https://www.meetup.com/es-ES/MachineLearningSpain/events/248264371/?eventId=2482
 Vídeo de la presentación
 
 https://www.youtube.com/watch?v=n91hF1iD_-g
+
+![](ML_Automatizado.png)fig-align="center"}
