@@ -10,4 +10,4 @@ Vídeo de la presentación
 
 https://www.youtube.com/watch?v=n91hF1iD_-g
 
-![](ML_Automatizado.png)fig-align="center"}
+![](ML_Automatizado.png)
